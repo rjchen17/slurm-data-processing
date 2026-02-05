@@ -12,11 +12,12 @@ if __name__ == "__main__":
 
     data = parquet_file.to_pandas()
     print(f"Original table length: {len(data)}")
-    data["Reserved"] = data["Reserved"].apply(lambda x: datetime.date.strptime(x.split(0), "%Y-%M-%D"))
-
+    
+    # Start has a dtype of datetime64, numpy's version of datetime
     min_date = datetime.date(year=2025, month=1, day=1)
     max_date = datetime.date(year=2025, month=12, day=31)
-    date_filtered = data[(data["Reserved"] < min_date) | (data["Reserved"] > max_date)]
+    # AFAIK comparison works fine between the two
+    date_filtered = data[(data["Start"] > min_date) | (data["Start"] < max_date)]
     date_filtered_jobs = len(date_filtered)
     print(f"Table with date filters length: {date_filtered_jobs}") 
 
