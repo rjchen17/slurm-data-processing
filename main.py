@@ -8,12 +8,11 @@ import pyarrow.parquet as pq
 
 if __name__ == "__main__":
     pd.set_option('display.max_columns', None)
-    #dates = datetime.data.strptime(date.split(0), "%Y-%M-%D")
     parquet_file = pq.read_table(os.environ["SLURM_DATA_PATH"])
 
     data = parquet_file.to_pandas()
     print(f"Original table length: {len(date)}")
-    date["Reserved"] = date["Reserved"].apply(lambda x: datetime.date.strptime(x.split(0), "%Y-%M-%D"))
+    data["Reserved"] = data["Reserved"].apply(lambda x: datetime.date.strptime(x.split(0), "%Y-%M-%D"))
 
     min_date = datetime.date(year=2025, month=1, day=1)
     max_date = datetime.date(year=2025, month=12, day=31)
