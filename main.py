@@ -11,11 +11,11 @@ if __name__ == "__main__":
     parquet_file = pq.read_table(os.environ["SLURM_DATA_PATH"])
 
     data = parquet_file.to_pandas()
+
     print(f"Original table length: {len(data)}")
-    
     # Start has a dtype of datetime64, numpy's version of datetime
-    min_date = datetime.date(year=2025, month=1, day=1)
-    max_date = datetime.date(year=2025, month=12, day=31)
+    min_date = datetime.datetime(year=2025, month=1, day=1)
+    max_date = datetime.datetime(year=2025, month=12, day=31)
     # AFAIK comparison works fine between the two
     date_filtered = data[(data["Start"] > min_date) | (data["Start"] < max_date)]
     date_filtered_jobs = len(date_filtered)
