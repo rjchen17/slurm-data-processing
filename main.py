@@ -11,7 +11,7 @@ if __name__ == "__main__":
     parquet_file = pq.read_table(os.environ["SLURM_DATA_PATH"])
 
     data = parquet_file.to_pandas()
-    print(f"Original table length: {len(date)}")
+    print(f"Original table length: {len(data)}")
     data["Reserved"] = data["Reserved"].apply(lambda x: datetime.date.strptime(x.split(0), "%Y-%M-%D"))
 
     min_date = datetime.date(year=2025, month=1, day=1)
