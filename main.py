@@ -1,3 +1,5 @@
+"""Get information from a sacct data table in parquet format"""
+
 import os
 import datetime
 
@@ -6,7 +8,8 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-if __name__ == "__main__":
+def main():
+
     pd.set_option('display.max_columns', None)
     parquet_file = pq.read_table(os.environ["SLURM_DATA_PATH"])
 
@@ -24,4 +27,7 @@ if __name__ == "__main__":
     MPI = date_filtered[date_filtered["AllocNodes"] >= 2]
     MPI_jobs = len(MPI)
     print(f"{MPI_jobs} jobs using MPI, corresponding to an MPI usage of {MPI_jobs / date_filtered_jobs}")
+
+if __name__ == "__main__":
     
+    main()
