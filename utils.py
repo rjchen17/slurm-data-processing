@@ -13,7 +13,6 @@ def get_node_info() -> list[Node]:
         if line.strip() == "":
             continue
         line_parts = line.split()
-        print(line_parts)
         node = Node(name=line_parts[0], partition=line_parts[2])
         nodes.append(node)
     
