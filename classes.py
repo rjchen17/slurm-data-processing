@@ -6,7 +6,5 @@ class Node:
         self.partition = partition
         self.cpus = cpus
     
-    @staticmethod
-    def from_json(path: str | Path):
-
-       return 
+    def __str__(self):
+        return f"Node {self.name} on partition {self.partition} with {self.cpus} cpus. "
