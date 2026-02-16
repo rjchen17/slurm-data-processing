@@ -2,11 +2,29 @@
 
 import os
 import datetime
+import json
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+
+from argparse import ArgumentParser
+from classes import Node
+
+def parse_args():
+    
+    parser = ArgumentParser()
+
+    parser.add_argument("-n", "--node_info", type=str, default="nodes.json", help="Path to serialized list of Node objects. ")
+    args = parser.parse_args()
+    return args
+
+def read_node_info() -> dict:
+    """Get a list of Nodes from file, specified by the 'node_list' argument"""
+    with open(args.node_info, 'r') as node_file:
+        node_dict = json.load(node_file)
+    return node_dict
 
 def main():
 
@@ -14,7 +32,6 @@ def main():
     parquet_file = pq.read_table(os.environ["SLURM_DATA_PATH"])
 
     data = parquet_file.to_pandas()
-    print(data.columns.tolist())
 
     print(f"Original table length: {len(data)}")
     # Start has a dtype of datetime64, numpy's version of datetime
@@ -30,12 +47,14 @@ def main():
     # Tilde notation acts as as a "not"
     tier_3 = date_filtered[multi_node_mask] # tier_3 = jobs ran on 2 or more nodes
     tier_1_and_2 = date_filtered[~multi_node_mask] 
-    
-    # Read node list
-
+    node_dict = read_node_info()
+    node_cpu_limits = tier_1_and_2["NodeList"].map(lambda x: node_dict[x]["cpus"])
+    cpu_allocation_mask = tier_1_and_2["AllocCPUS"] >= node_cpu_limits
+    tier_2 = tier_1_and_2[cpu_allocation_mask]
+    print(tier_2.iloc[0])
     MPI_jobs = len(tier_3)
     print(f"{MPI_jobs} jobs using MPI, corresponding to an MPI usage of {MPI_jobs / date_filtered_jobs}")
 
 if __name__ == "__main__":
-    
+    args = parse_args()
     main()
