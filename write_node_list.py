@@ -16,8 +16,10 @@ def main():
         # at the end of the scontrol output, hence the "if '=' in part" checking
         scontrol_dict = {attribute: value for attribute, value in (part.split('=') for part in scontrol_as_string.split() if '=' in part)}
         node.cpus = int(scontrol_dict["CPUTot"])
+
+    node_dict = {node.name: node.__dict__ for node in node_list}
     with open("nodes.json", 'w') as nodes_file:
-       json.dump([node.__dict__ for node in node_list], nodes_file, indent=1) 
+       json.dump(node_dict, nodes_file, indent=1) 
 
 if __name__ == "__main__":
 
