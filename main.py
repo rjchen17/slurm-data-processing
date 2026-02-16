@@ -48,13 +48,22 @@ def main():
     tier_3 = date_filtered[multi_node_mask] # tier_3 = jobs ran on 2 or more nodes
     tier_1_and_2 = date_filtered[~multi_node_mask] 
     node_dict = read_node_info()
-    node_cpu_limits = tier_1_and_2["NodeList"].map(lambda x: node_dict[x]["cpus"])
-    cpu_allocation_mask = tier_1_and_2["AllocCPUS"] >= node_cpu_limits
-    tier_2 = tier_1_and_2[cpu_allocation_mask]
-    print(tier_2.iloc[0])
-    MPI_jobs = len(tier_3)
-    print(f"{MPI_jobs} jobs using MPI, corresponding to an MPI usage of {MPI_jobs / date_filtered_jobs}")
+    
+    # Some node names aren't coming up in the current version of slurm. Assuming that the nodes were 
+    # removed/renamed, for now just filter out all those nodes
+    renamed_nodes_mask = ~tier_1_and_2["NodeList"].isin(node_dict.keys())
+    renamed_nodes_data = tier_1_and_2[renamed_nodes_mask]
+    valid_tier_1_and_2 = tier_1_and_2[~renamed_nodes_mask]
+    
+    # Use CPU limits based on scontrol to differentiate tier 1 and 2 jobs
+    node_cpu_limits = valid_tier_1_and_2["NodeList"].map(lambda x: node_dict[x]["cpus"])
+    cpu_allocation_mask = valid_tier_1_and_2["AllocCPUS"] >= node_cpu_limits
+    tier_1 = valid_tier_1_and_2[~cpu_allocation_mask]
+    tier_2 = valid_tier_1_and_2[cpu_allocation_mask]
 
+    for index, dataframe in enumerate([tier_1, tier_2, tier_3]):
+        num_jobs = len(dataframe)
+        print(f"{num_jobs} Tier {index + 1} jobs ran. Proportion: {num_jobs / date_filtered_jobs}")
 if __name__ == "__main__":
     args = parse_args()
     main()
