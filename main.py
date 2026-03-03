@@ -13,6 +13,7 @@ import pyarrow.parquet as pq
 from argparse import ArgumentParser
 from classes import Node
 from validation.utils import get_time_duplicates, get_duplicates
+from utils import get_missing_nodes
 
 def parse_args():
     
@@ -32,6 +33,7 @@ def run_duplicate_analysis(data: pd.Dataframe) -> None:
 
     duplicates = get_duplicates(data)
     print(f"{len(duplicates) / len(data)} proportion of data are dupliactes. ")
+
 
 def main():
 
@@ -58,14 +60,23 @@ def main():
     tier_1_and_2 = date_filtered[~multi_node_mask] 
     node_dict = read_node_info()
     
-    # Some node names aren't coming up in the current version of slurm. Assuming that the nodes were 
-    # removed/renamed, for now just filter out all those nodes
+    # Some node names aren't coming up in the current version of slurm. We can search for them via
+    # the `get_missing_nodes` function. If they are still missing, we will discard them.
     renamed_nodes_mask = ~tier_1_and_2["NodeList"].isin(node_dict.keys())
     renamed_nodes_data = tier_1_and_2[renamed_nodes_mask]
-    valid_tier_1_and_2 = tier_1_and_2[~renamed_nodes_mask]
+    unique_nodes = renamed_nodes_data["NodeList"].dropna().unique().tolist()
+    missing_nodes = get_missing_nodes(unique_nodes, "nodes.txt")
+
+    found_nodes = {} # Nodes whose info was retrievable
+    for node, node_info in missing_nodes.items():
+        if "cpus" in node_info:
+            found_nodes[node] = node_info 
+    all_nodes = node_dict | found_nodes
+    valid_nodes_mask = tier_1_and_2["NodeList"].isin(all_nodes.keys())
+    valid_tier_1_and_2 = tier_1_and_2[valid_nodes_mask]
     
     # Use CPU limits based on scontrol to differentiate tier 1 and 2 jobs
-    node_cpu_limits = valid_tier_1_and_2["NodeList"].map(lambda x: node_dict[x]["cpus"])
+    node_cpu_limits = valid_tier_1_and_2["NodeList"].map(lambda x: all_nodes[x]["cpus"])
     cpu_allocation_mask = valid_tier_1_and_2["AllocCPUS"] >= node_cpu_limits
     tier_1 = valid_tier_1_and_2[~cpu_allocation_mask]
     tier_2 = valid_tier_1_and_2[cpu_allocation_mask]
