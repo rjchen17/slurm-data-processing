@@ -3,13 +3,17 @@ True otherwise (i.e. the data is valid). """
 import numpy as np
 import pandas as pd
 
-def get_duplicate_jobs(data: pd.DataFrame) -> pd.DataFrame:
-    """Return a dataframe that contains all jobs that share submit time, account, and CPU usage time. """ 
-    submit_counts = data.groupby("Submit").transform("size")
-    account_counts = data.groupby("Account").transform("size")
-    cpu_counts = data.groupby("ResvCPURAW").transform("size")
-    duplicates = data[(submit_counts >= 2) & (account_counts >= 2) & (cpu_counts >= 2)]
-    return duplicates.sort_values(by=["Submit", "Account", "ResvCPURAW"])
+def get_duplicates(data: pd.DataFrame) -> pd.DataFrame:
+    """Get jobs that were submitted at the same time, by the same person, and ran for the same
+    amount of time. Should be a decent proxy for dupliactes, for now."""
+
+    # Apply filter. This should remove any jobs that ran for 0 seconds, which we don't necessarily
+    # want to treat as "dupliactes"
+    data = data[(data["ResvCPURAW"] > 0.) & (~data["State"].isin(["CANCELLED", "TIMEOUT"]))].copy()
+    # Sort by fields. Choice of indexing column (e.g. ["Submit"] is immaterial
+    group_counts = data.groupby(["Submit", "Account", "Elapsed"])["Submit"].transform("size")
+    duplicates = data[group_counts >= 2]
+    return duplicates.sort_values(by=["Submit", "Account", "Elapsed"])
 
 def get_time_duplicates(data: pd.DataFrame) -> pd.DataFrame:
     """Get jobs that were run at the same time.  """
