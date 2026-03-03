@@ -1,6 +1,7 @@
 """Get information from a sacct data table in parquet format"""
 
 import os
+import sys
 import datetime
 import json
 
@@ -11,6 +12,7 @@ import pyarrow.parquet as pq
 
 from argparse import ArgumentParser
 from classes import Node
+from validation.utils import get_time_duplicates, get_duplicates
 
 def parse_args():
     
@@ -25,6 +27,11 @@ def read_node_info() -> dict:
     with open(args.node_info, 'r') as node_file:
         node_dict = json.load(node_file)
     return node_dict
+
+def run_duplicate_analysis(data: pd.Dataframe) -> None:
+
+    duplicates = get_duplicates(data)
+    print(f"{len(duplicates) / len(data)} proportion of data are dupliactes. ")
 
 def main():
 
@@ -41,6 +48,8 @@ def main():
     date_filtered = data[(data["Start"] > min_date) | (data["Start"] < max_date)]
     date_filtered_jobs = len(date_filtered)
     print(f"Table with date filters length: {date_filtered_jobs}") 
+
+    run_duplicate_analysis(data)
     
     # Mask that checks for multiple nodes
     multi_node_mask = date_filtered["AllocNodes"] >= 2 
