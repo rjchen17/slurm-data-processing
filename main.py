@@ -16,10 +16,11 @@ import pyarrow.parquet as pq
 from classes import Node
 from utils import get_missing_nodes
 from validation.utils import get_time_duplicates, get_duplicates
+from visualization.graphs import get_cpu_histogram
 
 
 def parse_args():
-
+    """Parse relevant command line args."""
     parser = ArgumentParser()
 
     parser.add_argument(
@@ -46,23 +47,6 @@ def run_duplicate_analysis(data: pd.DataFrame) -> None:
     print(f"{len(duplicates) / len(data)} proportion of data are dupliactes. ")
 
 
-def get_cpu_histogram(data: pd.DataFrame, dest: str | Path = "hist.png") -> None:
-    """Generate a histogram for CPU hour usage."""
-    plt.xlabel("CPU Hours")
-    plt.ylabel("Frequency")
-    CPU_hours = data["CPUTimeRAW"].dt.total_seconds() / 3600
-    CPU_hours = CPU_hours[CPU_hours > 1]
-    bins = 100
-
-    log_min = 0
-    log_max = np.log10(max(CPU_hours))
-    log_bins = np.logspace(log_min, log_max, bins + 1)
-    plt.hist(CPU_hours, log=True, bins=log_bins)
-    plt.xscale("log")
-    plt.savefig(dest)
-    return
-
-
 def cluster_capability_analysis(nodes: dict) -> int:
     """Given a dict of node information, compute the total possible CPU hours on the cluster."""
 
@@ -76,7 +60,6 @@ def main(args):
     parquet_file = pq.read_table(os.environ["SLURM_DATA_PATH"])
 
     data = parquet_file.to_pandas()
-    get_cpu_histogram(data)
 
     print(f"Original table length: {len(data)}")
     # Start has a dtype of datetime64, numpy's version of datetime
