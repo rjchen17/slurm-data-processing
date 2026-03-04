@@ -105,11 +105,13 @@ def main():
     total_cpu = date_filtered["CPUTimeRAW"].sum()
     for index, dataframe in enumerate([tier_1, tier_2, tier_3]):
         num_jobs = len(dataframe)
-        dataframe["CPUTimeRAW"] = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
-        tier_cpu = dataframe["CPUTimeRAW"].sum()
-        print(f"{num_jobs} Tier {index + 1} jobs ran. Proportion: {num_jobs / date_filtered_jobs}. ")
-        print(f"Total CPU hours: {tier_cpu:.2f}. Proportion: {tier_cpu / total_cpu:.2f}. ")
-        print(f"Descriptive statistics: mean of {np.mean(tier_cpu):.2f} \u00B1 {np.std(tier_cpu)}, median of {np.median(tier_cpu):.2f}. ")
+        tier_cpu = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
+        total_tier_cpu = tier_cpu.sum() 
+        print(f">>>Tier {index + 1} >>>")
+        print(f"{num_jobs} jobs ran. Proportion: {num_jobs / date_filtered_jobs}. ")
+        print(f"Total CPU hours: {total_tier_cpu:,.2f}. Proportion: {total_tier_cpu / total_cpu:.2f}. ")
+        tier_mean = np.mean(tier_cpu)
+        print(f"Descriptive statistics: mean of {tier_mean:,.2f} \u00B1{np.std(tier_cpu):.4f}, median of {np.median(tier_cpu):,.2f}. ")
 if __name__ == "__main__":
     args = parse_args()
     main()
