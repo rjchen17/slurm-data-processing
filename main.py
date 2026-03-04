@@ -5,6 +5,7 @@ import sys
 import datetime
 import json
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pyarrow as pa
@@ -29,19 +30,38 @@ def read_node_info() -> dict:
         node_dict = json.load(node_file)
     return node_dict
 
-def run_duplicate_analysis(data: pd.Dataframe) -> None:
+def run_duplicate_analysis(data: pd.DataFrame) -> None:
 
     duplicates = get_duplicates(data)
     print(f"{len(duplicates) / len(data)} proportion of data are dupliactes. ")
 
+def get_cpu_histogram(data: pd.DataFrame) -> None:
+    """Generate a histogram for CPU hour usage. """
+    
+    fig, axes = plt.subplots(2, 1)
+    for ax in axes:
+        ax.set_xlabel("CPU Hours")
+        ax.set_ylabel("Frequency")
+    CPU_hours = data["CPUTimeRAW"].dt.total_seconds() / 3600
+    CPU_hours = CPU_hours[CPU_hours > 1]
+    bins = 100
+    axes[0].hist(CPU_hours, bins=bins) 
 
+    log_min = 0 
+    log_max = np.log10(max(CPU_hours))
+    log_bins = np.logspace(log_min, log_max, bins + 1)
+    axes[1].hist(CPU_hours, log=True, bins=log_bins)
+    axes[1].set_xscale('log')
+    plt.savefig("hist.png")
+    return
 def main():
 
     pd.set_option('display.max_columns', None)
     parquet_file = pq.read_table(os.environ["SLURM_DATA_PATH"])
 
     data = parquet_file.to_pandas()
-
+    get_cpu_histogram(data)
+    
     print(f"Original table length: {len(data)}")
     # Start has a dtype of datetime64, numpy's version of datetime
     min_date = datetime.datetime(year=2025, month=1, day=1)
@@ -80,10 +100,16 @@ def main():
     cpu_allocation_mask = valid_tier_1_and_2["AllocCPUS"] >= node_cpu_limits
     tier_1 = valid_tier_1_and_2[~cpu_allocation_mask]
     tier_2 = valid_tier_1_and_2[cpu_allocation_mask]
-
+    
+    date_filtered["CPUTimeRAW"] = date_filtered["CPUTimeRAW"].dt.total_seconds() / 3600
+    total_cpu = date_filtered["CPUTimeRAW"].sum()
     for index, dataframe in enumerate([tier_1, tier_2, tier_3]):
         num_jobs = len(dataframe)
-        print(f"{num_jobs} Tier {index + 1} jobs ran. Proportion: {num_jobs / date_filtered_jobs}")
+        dataframe["CPUTimeRAW"] = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
+        tier_cpu = dataframe["CPUTimeRAW"].sum()
+        print(f"{num_jobs} Tier {index + 1} jobs ran. Proportion: {num_jobs / date_filtered_jobs}. ")
+        print(f"Total CPU hours: {tier_cpu:.2f}. Proportion: {tier_cpu / total_cpu:.2f}. ")
+        print(f"Descriptive statistics: mean of {np.mean(tier_cpu):.2f} \u00B1 {np.std(tier_cpu)}, median of {np.median(tier_cpu):.2f}. ")
 if __name__ == "__main__":
     args = parse_args()
     main()
