@@ -13,8 +13,9 @@ import pyarrow.parquet as pq
 
 from argparse import ArgumentParser
 from classes import Node
-from validation.utils import get_time_duplicates, get_duplicates
+from pathlib import Path
 from utils import get_missing_nodes
+from validation.utils import get_time_duplicates, get_duplicates
 
 def parse_args():
     
@@ -35,24 +36,20 @@ def run_duplicate_analysis(data: pd.DataFrame) -> None:
     duplicates = get_duplicates(data)
     print(f"{len(duplicates) / len(data)} proportion of data are dupliactes. ")
 
-def get_cpu_histogram(data: pd.DataFrame) -> None:
+def get_cpu_histogram(data: pd.DataFrame, dest: str | Path = "hist.png") -> None:
     """Generate a histogram for CPU hour usage. """
-    
-    fig, axes = plt.subplots(2, 1)
-    for ax in axes:
-        ax.set_xlabel("CPU Hours")
-        ax.set_ylabel("Frequency")
+    plt.xlabel("CPU Hours")
+    plt.ylabel("Frequency") 
     CPU_hours = data["CPUTimeRAW"].dt.total_seconds() / 3600
     CPU_hours = CPU_hours[CPU_hours > 1]
     bins = 100
-    axes[0].hist(CPU_hours, bins=bins) 
 
     log_min = 0 
     log_max = np.log10(max(CPU_hours))
     log_bins = np.logspace(log_min, log_max, bins + 1)
-    axes[1].hist(CPU_hours, log=True, bins=log_bins)
-    axes[1].set_xscale('log')
-    plt.savefig("hist.png")
+    plt.hist(CPU_hours, log=True, bins=log_bins)
+    plt.xscale('log')
+    plt.savefig(dest)
     return
 def main():
 
@@ -104,6 +101,7 @@ def main():
     date_filtered["CPUTimeRAW"] = date_filtered["CPUTimeRAW"].dt.total_seconds() / 3600
     total_cpu = date_filtered["CPUTimeRAW"].sum()
     for index, dataframe in enumerate([tier_1, tier_2, tier_3]):
+        get_cpu_histogram(data=dataframe, dest=str(index + 1) + "_hist.png")
         num_jobs = len(dataframe)
         tier_cpu = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
         total_tier_cpu = tier_cpu.sum() 
