@@ -1,4 +1,4 @@
-"""Get information from a sacct data table in parquet format"""
+"""Get information from a sacct data table in parquet format. """
 
 import os
 import sys
@@ -45,7 +45,7 @@ def read_node_info(path: str | Path) -> dict:
 def run_duplicate_analysis(data: pd.DataFrame) -> None:
 
     duplicates = get_duplicates(data)
-    print(f"{len(duplicates) / len(data)} proportion of data are dupliactes. ")
+    print(f"{len(duplicates) / len(data)} proportion of data are duplicates. ")
 
 
 def main(args):
