@@ -2,7 +2,6 @@
 
 import logging
 import pandas as pd
-from matplotlib.rcsetup import validate_int
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(encoding="utf-8", level=logging.INFO)
@@ -13,10 +12,10 @@ def capability_analysis(data: pd.DataFrame, nodes: dict) -> bool:
     Given a dict of node information, compute the total possible CPU hours on the cluster.
 
     Args:
-        data: A table of sacct data
-        nodes: Per-node information that includes total CPUs
+        data: A table of sacct data.
+        nodes: Per-node information that includes total CPUs.
     Returns:
-        True if validation is passed, False otherwise
+        True if validation is passed, False otherwise.
     """
 
     logger.info("Running capability analysis. ")
