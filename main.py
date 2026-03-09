@@ -16,7 +16,7 @@ import pyarrow.parquet as pq
 from classes import Node
 from utils import get_missing_nodes
 from validation.utils import get_time_duplicates, get_duplicates
-from visualization.graphs import get_cpu_histogram
+from visualization.graphs import cpu_histogram
 
 
 def parse_args():
