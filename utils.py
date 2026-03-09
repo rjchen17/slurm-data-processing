@@ -8,7 +8,8 @@ def get_node_info(slurm_version) -> list[Node]:
     """
     Get information for all nodes on the current slurm.
 
-    :return: A list of Nodes
+    Returns:
+         A list of Nodes
     """
     nodes = [] 
     sinfo_output = subprocess.run(f"module purge && module load {slurm_version} && sinfo -N", capture_output=True, shell=True, executable="/bin/bash")
