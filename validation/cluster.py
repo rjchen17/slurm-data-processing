@@ -1,11 +1,11 @@
-"""Cluster-based validation functions. """
+"""Cluster-based validation functions."""
 
 import logging
 import pandas as pd
 from matplotlib.rcsetup import validate_int
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(encoding='utf-8', level=logging.INFO)
+logging.basicConfig(encoding="utf-8", level=logging.INFO)
 
 
 def capability_analysis(data: pd.DataFrame, nodes: dict) -> bool:
@@ -27,7 +27,9 @@ def capability_analysis(data: pd.DataFrame, nodes: dict) -> bool:
         validation_passed = False
     else:
         validation_passed = True
-    logger.info(f"Validation complete. Cluster ran for {hours_ran:,} hours "
-                f"of a maximum possible {total_possible_hours:,}. ")
+    logger.info(
+        f"Validation complete. Cluster ran for {hours_ran:,} hours "
+        f"of a maximum possible {total_possible_hours:,}. "
+    )
 
     return validation_passed

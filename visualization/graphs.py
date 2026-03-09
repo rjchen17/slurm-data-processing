@@ -21,9 +21,9 @@ def cpu_histogram(data: pd.DataFrame) -> Figure:
 
     return fig
 
+
 def calendar_histogram(data: pd.DataFrame, interval: str = "week") -> Figure:
-    """Generate a histogram that shows job submissions throughout the calendar year. """
+    """Generate a histogram that shows job submissions throughout the calendar year."""
     fig, ax = plt.subplots()
     ax.set_xlabel("Job Submissions")
     ax.set_ylabel("Frequency")
-    
