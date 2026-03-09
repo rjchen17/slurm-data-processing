@@ -1,5 +1,4 @@
-"""A series of data validation functions that return False if the data has a specific issue, and 
-True otherwise (i.e. the data is valid). """
+"""Job-based validation functions. """
 import numpy as np
 import pandas as pd
 

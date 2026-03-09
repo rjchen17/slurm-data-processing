@@ -15,7 +15,8 @@ import pyarrow.parquet as pq
 
 from classes import Node
 from utils import get_missing_nodes
-from validation.utils import get_time_duplicates, get_duplicates
+from validation.jobs import get_time_duplicates, get_duplicates
+from validation.cluster import capability_analysis
 from visualization.graphs import cpu_histogram
 
 
@@ -45,13 +46,6 @@ def run_duplicate_analysis(data: pd.DataFrame) -> None:
 
     duplicates = get_duplicates(data)
     print(f"{len(duplicates) / len(data)} proportion of data are dupliactes. ")
-
-
-def cluster_capability_analysis(nodes: dict) -> int:
-    """Given a dict of node information, compute the total possible CPU hours on the cluster."""
-
-    cpus = sum([int(nodes[node]["cpus"]) for node in nodes])
-    return cpus * 365 * 24
 
 
 def main(args):
@@ -91,8 +85,7 @@ def main(args):
         if "cpus" in node_info:
             found_nodes[node] = node_info
     all_nodes = node_dict | found_nodes
-    total_possible_hours = cluster_capability_analysis(all_nodes)
-    print(f"{total_possible_hours:,}")
+    capability_analysis(data=date_filtered, nodes=all_nodes)
     valid_nodes_mask = tier_1_and_2["NodeList"].isin(all_nodes.keys())
     valid_tier_1_and_2 = tier_1_and_2[valid_nodes_mask]
 
@@ -105,7 +98,7 @@ def main(args):
     date_filtered["CPUTimeRAW"] = date_filtered["CPUTimeRAW"].dt.total_seconds() / 3600
     total_cpu = date_filtered["CPUTimeRAW"].sum()
     for index, dataframe in enumerate([tier_1, tier_2, tier_3]):
-        get_cpu_histogram(data=dataframe, dest=str(index + 1) + "_hist.png")
+        cpu_histogram(data=dataframe, dest=str(index + 1) + "_hist.png")
         num_jobs = len(dataframe)
         tier_cpu = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
         total_tier_cpu = tier_cpu.sum()
