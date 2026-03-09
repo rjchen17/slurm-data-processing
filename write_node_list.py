@@ -19,8 +19,16 @@ def main():
             # scontrol returns a series of attributes separated by whitespace. The attributes are further separated 
             # from their values by equal signs. The line below parses that into a dictionary. Sometimes there's additional info
             # at the end of the scontrol output, hence the "if '=' in part" checking
-            scontrol_dict = {attribute: value for attribute, value in (part.split('=') for part in scontrol_as_string.split() if 'CPU' in part)}
+            scontrol_dict = {attribute: value for attribute, value in (part.split('=') for part in scontrol_as_string.split() if 'CPU' in part or 'Partitions' in part)}
             node.cpus = int(scontrol_dict["CPUTot"])
+            if "Partitions" not in scontrol_dict:
+                continue    
+            partitions = scontrol_dict["Partitions"].split(',')
+            if "preempt" in partitions:
+                partitions.remove("preempt")
+            if len(partitions) > 1:
+                raise ValueError(f"Partitions {partitions} more than 1. ")
+            node.partition = partitions[0] 
         # "Append" keys/values to node_dict
         node_dict.update({node.name: node.__dict__ for node in node_list})
 
