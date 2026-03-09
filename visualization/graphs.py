@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 
-def get_cpu_histogram(data: pd.DataFrame) -> Figure:
+def cpu_histogram(data: pd.DataFrame) -> Figure:
     """Generate a histogram for CPU hour usage."""
     fig, ax = plt.subplots()
     ax.set_xlabel("CPU Hours")
@@ -20,3 +20,10 @@ def get_cpu_histogram(data: pd.DataFrame) -> Figure:
     ax.set_xscale("log")
 
     return fig
+
+def calendar_histogram(data: pd.DataFrame, interval: str = "week") -> Figure:
+    """Generate a histogram that shows job submissions throughout the calendar year. """
+    fig, ax = plt.subplots()
+    ax.set_xlabel("Job Submissions")
+    ax.set_ylabel("Frequency")
+    
