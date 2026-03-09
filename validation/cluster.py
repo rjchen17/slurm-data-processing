@@ -21,7 +21,7 @@ def capability_analysis(data: pd.DataFrame, nodes: dict) -> bool:
 
     logger.info("Running capability analysis. ")
     total_possible_hours = sum([int(nodes[node]["cpus"]) for node in nodes]) * 365 * 24
-    hours_ran = data["CPUTimeRAW"].dt.total_seconds() / 3600
+    hours_ran = int((data["CPUTimeRAW"].dt.total_seconds() / 3600).sum())
 
     if hours_ran > total_possible_hours:
         validation_passed = False
