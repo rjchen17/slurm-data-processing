@@ -1,4 +1,4 @@
-"""Get information from a sacct data table in parquet format. """
+"""Get information from a sacct data table in parquet format."""
 
 import os
 import sys
@@ -48,6 +48,34 @@ def run_duplicate_analysis(data: pd.DataFrame) -> None:
     print(f"{len(duplicates) / len(data)} proportion of data are duplicates. ")
 
 
+def run_usage_analysis(data: pd.DataFrame, nodes: dict) -> dict:
+    """
+    Get the CPU usage per partition.
+
+    Args:
+        data: A table of sacct data.
+        nodes: Per-node information that includes total CPUs.
+
+    Returns:
+        A dict mapping from partition names to possible and actual CPU usage.
+    """
+    partition_cpus = {}
+    usage = {}
+    for node_data in nodes.values():
+        if node_data["partition"] not in partition_cpus:
+            partition_cpus[node_data["partition"]] = node_data["cpus"]
+        else:
+            partition_cpus[node_data["partition"]] += node_data["cpus"]
+
+    for partition in partition_cpus:
+        possible_cpu = partition_cpus[partition] * 365 * 24
+        jobs = data[data["Partition"] == partition]
+        used_cpu = int((jobs["CPUTimeRAW"].dt.total_seconds() / 3600).sum())
+        usage[partition] = {"used": used_cpu, "possible_cpu": possible_cpu}
+
+    return usage
+
+
 def main(args):
 
     pd.set_option("display.max_columns", None)
@@ -85,6 +113,10 @@ def main(args):
         if "cpus" in node_info:
             found_nodes[node] = node_info
     all_nodes = node_dict | found_nodes
+
+    print(run_usage_analysis(data, all_nodes))
+    sys.exit()
+
     capability_analysis(data=date_filtered, nodes=all_nodes)
     valid_nodes_mask = tier_1_and_2["NodeList"].isin(all_nodes.keys())
     valid_tier_1_and_2 = tier_1_and_2[valid_nodes_mask]
