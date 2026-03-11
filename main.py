@@ -107,7 +107,7 @@ def main(args):
 
     # Mask that checks for multiple nodes
     multi_node_mask = date_filtered["AllocNodes"] >= 2
-    # Tilde notation acts as as a "not"
+    # Tilde notation acts as a "not"
     tier_3 = date_filtered[multi_node_mask]  # tier_3 = jobs ran on 2 or more nodes
     tier_1_and_2 = date_filtered[~multi_node_mask]
     node_dict = read_node_info(path=args.node_info)
@@ -124,7 +124,7 @@ def main(args):
         if "cpus" in node_info:
             found_nodes[node] = node_info
     all_nodes = node_dict | found_nodes
-    for _, node_info in all_nodes.items():
+    for _, node_info in all_nodes.items(): # TODO: why is sinfo showing a partition named standard*?
         if node_info["partition"] == "standard*":
             node_info["partition"] = "standard"
 
@@ -143,7 +143,7 @@ def main(args):
     date_filtered["CPUTimeRAW"] = date_filtered["CPUTimeRAW"].dt.total_seconds() / 3600
     total_cpu = date_filtered["CPUTimeRAW"].sum()
     for index, dataframe in enumerate([tier_1, tier_2, tier_3]):
-        cpu_histogram(data=dataframe)
+        cpu_histogram(data=dataframe) # TODO: this now returns a fig and must be saved
         num_jobs = len(dataframe)
         tier_cpu = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
         total_tier_cpu = tier_cpu.sum()
