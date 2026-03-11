@@ -4,6 +4,7 @@ import os
 import sys
 import datetime
 import json
+import logging
 from argparse import ArgumentParser
 from pathlib import Path
 
@@ -18,6 +19,9 @@ from utils import get_missing_nodes
 from validation.jobs import get_time_duplicates, get_duplicates
 from validation.cluster import capability_analysis
 from visualization.graphs import cpu_histogram
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level="INFO")
 
 
 def parse_args():
@@ -70,8 +74,15 @@ def run_usage_analysis(data: pd.DataFrame, nodes: dict) -> dict:
     for partition in partition_cpus:
         possible_cpu = partition_cpus[partition] * 365 * 24
         jobs = data[data["Partition"] == partition]
-        used_cpu = int((jobs["CPUTimeRAW"].dt.total_seconds() / 3600).sum())
-        usage[partition] = {"used": used_cpu, "possible_cpu": possible_cpu}
+        job_cpu_hours = jobs["CPUTimeRAW"].dt.total_seconds() / 3600
+        mean, std = np.mean(job_cpu_hours), np.std(job_cpu_hours)
+        used_cpu = int(job_cpu_hours.sum())
+        usage[partition] = {
+            "used": used_cpu,
+            "possible_cpu": possible_cpu,
+            "mean": mean,
+            "std": std,
+        }
 
     return usage
 
@@ -113,9 +124,11 @@ def main(args):
         if "cpus" in node_info:
             found_nodes[node] = node_info
     all_nodes = node_dict | found_nodes
+    for _, node_info in all_nodes.items():
+        if node_info["partition"] == "standard*":
+            node_info["partition"] = "standard"
 
     print(run_usage_analysis(data, all_nodes))
-    sys.exit()
 
     capability_analysis(data=date_filtered, nodes=all_nodes)
     valid_nodes_mask = tier_1_and_2["NodeList"].isin(all_nodes.keys())
@@ -130,7 +143,7 @@ def main(args):
     date_filtered["CPUTimeRAW"] = date_filtered["CPUTimeRAW"].dt.total_seconds() / 3600
     total_cpu = date_filtered["CPUTimeRAW"].sum()
     for index, dataframe in enumerate([tier_1, tier_2, tier_3]):
-        cpu_histogram(data=dataframe, dest=str(index + 1) + "_hist.png")
+        cpu_histogram(data=dataframe)
         num_jobs = len(dataframe)
         tier_cpu = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
         total_tier_cpu = tier_cpu.sum()
