@@ -1,3 +1,5 @@
+"""Generate matplotlib graphs and figures."""
+
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import numpy as np
