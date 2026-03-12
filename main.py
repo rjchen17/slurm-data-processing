@@ -19,6 +19,7 @@ from utils import get_missing_nodes
 from validation.jobs import get_time_duplicates, get_duplicates
 from validation.cluster import capability_analysis
 from visualization.graphs import cpu_histogram
+from visualization.tables import cpu_usage_table
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level="INFO")
@@ -80,6 +81,7 @@ def run_usage_analysis(data: pd.DataFrame, nodes: dict) -> dict:
         usage[partition] = {
             "used": used_cpu,
             "possible_cpu": possible_cpu,
+            "uptime": used_cpu / possible_cpu,
             "mean": mean,
             "std": std,
         }
@@ -124,11 +126,16 @@ def main(args):
         if "cpus" in node_info:
             found_nodes[node] = node_info
     all_nodes = node_dict | found_nodes
-    for _, node_info in all_nodes.items(): # TODO: why is sinfo showing a partition named standard*?
+    for (
+        _,
+        node_info,
+    ) in all_nodes.items():  # Asterisk is used to mark "default partition". In future, maybe just remove asterisks?
         if node_info["partition"] == "standard*":
             node_info["partition"] = "standard"
 
-    print(run_usage_analysis(data, all_nodes))
+    usage = run_usage_analysis(data, all_nodes)
+    with open("partition_usage.csv", "w") as csv_file:
+        csv_file.write(cpu_usage_table(usage))
 
     capability_analysis(data=date_filtered, nodes=all_nodes)
     valid_nodes_mask = tier_1_and_2["NodeList"].isin(all_nodes.keys())
@@ -143,7 +150,7 @@ def main(args):
     date_filtered["CPUTimeRAW"] = date_filtered["CPUTimeRAW"].dt.total_seconds() / 3600
     total_cpu = date_filtered["CPUTimeRAW"].sum()
     for index, dataframe in enumerate([tier_1, tier_2, tier_3]):
-        cpu_histogram(data=dataframe) # TODO: this now returns a fig and must be saved
+        cpu_histogram(data=dataframe)  # TODO: this now returns a fig and must be saved
         num_jobs = len(dataframe)
         tier_cpu = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
         total_tier_cpu = tier_cpu.sum()
