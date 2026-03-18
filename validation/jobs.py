@@ -29,5 +29,5 @@ def get_time_duplicates(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_job_scores(data: pd.DataFrame, values: str | list = "default") -> pd.DataFrame:
-    """A function that assigns scores to jobs based on their chance of being duplicates. """
+    """A function that assigns scores to jobs based on their chance of being duplicates."""
     raise NotImplementedError
