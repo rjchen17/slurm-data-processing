@@ -18,7 +18,7 @@ from classes import Node
 from utils import get_missing_nodes
 from validation.jobs import get_time_duplicates, get_duplicates
 from validation.cluster import capability_analysis
-from visualization.graphs import cpu_histogram
+from visualization.graphs import cpu_histogram, align_axes
 from visualization.tables import cpu_usage_table
 
 logger = logging.getLogger(__name__)
@@ -129,7 +129,9 @@ def main(args):
     for (
         _,
         node_info,
-    ) in all_nodes.items():  # Asterisk is used to mark "default partition". In future, maybe just remove asterisks?
+    ) in (
+        all_nodes.items()
+    ):  # Asterisk is used to mark "default partition". In future, maybe just remove asterisks?
         if node_info["partition"] == "standard*":
             node_info["partition"] = "standard"
 
@@ -137,7 +139,17 @@ def main(args):
     with open("partition_usage.csv", "w") as csv_file:
         csv_file.write(cpu_usage_table(usage))
 
+    used_nodes = {
+        node: node_info
+        for node, node_info in all_nodes.items()
+        if usage[node_info["partition"]]["uptime"] > 0.01
+    }
+
+    print(len(used_nodes))
+    print(len(all_nodes))
+    capability_analysis(data=date_filtered, nodes=used_nodes)
     capability_analysis(data=date_filtered, nodes=all_nodes)
+    sys.exit()
     valid_nodes_mask = tier_1_and_2["NodeList"].isin(all_nodes.keys())
     valid_tier_1_and_2 = tier_1_and_2[valid_nodes_mask]
 
@@ -149,8 +161,10 @@ def main(args):
 
     date_filtered["CPUTimeRAW"] = date_filtered["CPUTimeRAW"].dt.total_seconds() / 3600
     total_cpu = date_filtered["CPUTimeRAW"].sum()
+
+    figs = []
     for index, dataframe in enumerate([tier_1, tier_2, tier_3]):
-        cpu_histogram(data=dataframe)  # TODO: this now returns a fig and must be saved
+        figs.append(cpu_histogram(data=dataframe))
         num_jobs = len(dataframe)
         tier_cpu = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
         total_tier_cpu = tier_cpu.sum()
@@ -164,6 +178,10 @@ def main(args):
             f"Descriptive statistics: mean of {tier_mean:,.2f} \u00b1{np.std(tier_cpu):.4f}, "
             f"median of {np.nanmedian(tier_cpu):,.2f}. "
         )
+
+    align_axes([fig[1] for fig in figs])
+    for index, fig in enumerate(figs):
+        fig[0].savefig(f"tmp/{index + 1}_cpu.png")
 
 
 if __name__ == "__main__":
