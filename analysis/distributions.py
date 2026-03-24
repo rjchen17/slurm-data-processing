@@ -49,11 +49,11 @@ def get_wait_correlations(
         wait_time = data[data["Partition"] == partition]["Reserved"]
 
         partition_statistics["pearsonr"] = {
-            column: pearsonr(wait_time, data[data["Partition"] == partition])
+            column: pearsonr(wait_time, data[data["Partition"] == partition][column])
             for column in cols_to_analyze
         }
         partition_statistics["spearmanr"] = {
-            column: spearmanr(wait_time, data[data["Partition"] == partition])
+            column: spearmanr(wait_time, data[data["Partition"] == partition][column])
             for column in cols_to_analyze
         }
 
@@ -63,7 +63,6 @@ def get_wait_correlations(
 def get_core_request_distribution(data: pd.DataFrame):
 
     alloc_cpus = data["AllocCPUS"]
-
     return
 
 
