@@ -18,10 +18,16 @@ from classes import Node
 from utils import get_missing_nodes
 from validation.jobs import get_time_duplicates, get_duplicates
 from validation.cluster import capability_analysis
-from visualization.graphs import cpu_hour_histogram, align_axes
+from visualization.graphs import (
+    cpu_hour_histogram,
+    align_axes,
+    cpu_core_histogram,
+    cpu_proportion_histogram,
+)
 from visualization.tables import cpu_usage_table
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.FileHandler("test.log"))
 logging.basicConfig(level="INFO")
 
 
@@ -174,30 +180,42 @@ def main(args):
 
     # Use CPU limits based on scontrol to differentiate tier 1 and 2 jobs
     node_cpu_limits = valid_tier_1_and_2["NodeList"].map(lambda x: all_nodes[x]["cpus"])
-    cpu_allocation_mask = valid_tier_1_and_2["AllocCPUS"] >= node_cpu_limits
+    cpu_allocation_mask = valid_tier_1_and_2["AllocCPUS"] >= 0.5 * node_cpu_limits
     tier_1 = valid_tier_1_and_2[~cpu_allocation_mask]
     tier_2 = valid_tier_1_and_2[cpu_allocation_mask]
+
+    fig, _ = cpu_core_histogram(valid_tier_1_and_2)
+    fig.show()
+    fig2, _ = cpu_proportion_histogram(valid_tier_1_and_2, all_nodes)
+    fig2.show()
 
     # Split tier 1 jobs further
     tier_1a = tier_1[tier_1["AllocCPUS"] == 1]
     tier_1b = tier_1[tier_1["AllocCPUS"] == 2]
     tier_1c = tier_1[tier_1["AllocCPUS"] > 2]
-    tier_1_split = [tier_1a, tier_1b, tier_1c]
+    all_tiers = [tier_1, tier_1a, tier_1b, tier_1c, tier_2, tier_3]
+    tier_labels = ["1", "1a", "1b", "1c", "2", "3"]
 
     date_filtered["CPUTimeRAW"] = date_filtered["CPUTimeRAW"].dt.total_seconds() / 3600
     total_cpu = date_filtered["CPUTimeRAW"].sum()
 
     figs = []
-    for index, dataframe in enumerate([tier_1_split, tier_2, tier_3]):
+    # Use zip to iterate through the dataframes and their labels simultaneously
+    for dataframe, label in zip(all_tiers, tier_labels):
         figs.append(cpu_hour_histogram(data=dataframe))
+
         num_jobs = len(dataframe)
         tier_cpu = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
         total_tier_cpu = tier_cpu.sum()
-        print(f">>> Tier {index + 1} >>>")
-        print(f"{num_jobs} jobs ran. Proportion: {num_jobs / date_filtered_jobs}. ")
+
+        print(f"\n>>> Tier {label} >>>")
         print(
-            f"Total CPU hours: {total_tier_cpu:,.2f}. Proportion: {total_tier_cpu / total_cpu:.2f}. "
+            f"{num_jobs:,} jobs ran. Proportion: {num_jobs / date_filtered_jobs:.4f}. "
         )
+        print(
+            f"Total CPU hours: {total_tier_cpu:,.2f}. Proportion: {total_tier_cpu / total_cpu:.4f}. "
+        )
+
         tier_mean = np.mean(tier_cpu)
         print(
             f"Descriptive statistics: mean of {tier_mean:,.2f} \u00b1{np.std(tier_cpu):.4f}, "
@@ -205,8 +223,8 @@ def main(args):
         )
 
     align_axes([fig[1] for fig in figs])
-    for index, fig in enumerate(figs):
-        fig[0].savefig(f"tmp/{index + 1}_cpu.png")
+    for fig, tier_label in zip(figs, tier_labels):
+        fig[0].savefig(f"tmp/{tier_label}_cpu.png")
 
 
 if __name__ == "__main__":
