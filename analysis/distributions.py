@@ -66,12 +66,6 @@ def get_wait_correlations(
     return wait_statistics
 
 
-def get_core_request_distribution(data: pd.DataFrame):
-
-    alloc_cpus = data["AllocCPUS"]
-    return
-
-
 def wait_calendar_heatmap():
 
     return
