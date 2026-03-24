@@ -18,7 +18,7 @@ from classes import Node
 from utils import get_missing_nodes
 from validation.jobs import get_time_duplicates, get_duplicates
 from validation.cluster import capability_analysis
-from visualization.graphs import cpu_histogram, align_axes
+from visualization.graphs import cpu_hour_histogram, align_axes
 from visualization.tables import cpu_usage_table
 
 logger = logging.getLogger(__name__)
@@ -178,12 +178,18 @@ def main(args):
     tier_1 = valid_tier_1_and_2[~cpu_allocation_mask]
     tier_2 = valid_tier_1_and_2[cpu_allocation_mask]
 
+    # Split tier 1 jobs further
+    tier_1a = tier_1[tier_1["AllocCPUS"] == 1]
+    tier_1b = tier_1[tier_1["AllocCPUS"] == 2]
+    tier_1c = tier_1[tier_1["AllocCPUS"] > 2]
+    tier_1_split = [tier_1a, tier_1b, tier_1c]
+
     date_filtered["CPUTimeRAW"] = date_filtered["CPUTimeRAW"].dt.total_seconds() / 3600
     total_cpu = date_filtered["CPUTimeRAW"].sum()
 
     figs = []
-    for index, dataframe in enumerate([tier_1, tier_2, tier_3]):
-        figs.append(cpu_histogram(data=dataframe))
+    for index, dataframe in enumerate([tier_1_split, tier_2, tier_3]):
+        figs.append(cpu_hour_histogram(data=dataframe))
         num_jobs = len(dataframe)
         tier_cpu = dataframe["CPUTimeRAW"].dt.total_seconds() / 3600
         total_tier_cpu = tier_cpu.sum()
