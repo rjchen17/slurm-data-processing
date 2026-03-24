@@ -93,17 +93,38 @@ def main(args):
 
     pd.set_option("display.max_columns", None)
     parquet_file = pq.read_table(os.environ["SLURM_DATA_PATH"])
-
     data = parquet_file.to_pandas()
 
-    print(f"Original table length: {len(data)}")
     # Start has a dtype of datetime64, numpy's version of datetime
     min_date = datetime.datetime(year=2025, month=1, day=1)
     max_date = datetime.datetime(year=2025, month=12, day=31)
     # AFAIK comparison works fine between the two
     date_filtered = data[(data["Start"] > min_date) | (data["Start"] < max_date)]
     date_filtered_jobs = len(date_filtered)
+    print(f"Original table length: {len(data)}")
     print(f"Table with date filters length: {date_filtered_jobs}")
+
+    logger.info("Running wait time analysis. ")
+    outlier_threshold = pd.Timedelta(30, "days")
+    dropna_waits = date_filtered["Reserved"].dropna()
+    mean_wait, std_wait = np.mean(dropna_waits), np.std(dropna_waits)
+    logger.info(
+        f"Jobs on the cluster waited for a mean of {mean_wait / np.timedelta64(1, 'h')} hours \u00b1{std_wait / np.timedelta64(1, 'h')}. "
+    )
+    logger.info(
+        f"{dropna_waits[dropna_waits > pd.Timedelta(30, "days")].sum()} jobs on the cluster had a wait time of greater than {outlier_threshold}. "
+    )
+    public_partitions = ["standard", "gpu", "interactive", "preempt"]
+    for partition in public_partitions:
+        dropna_waits = date_filtered[date_filtered["Partition"] == partition][
+            "Reserved"
+        ].dropna()
+        mean_wait, std_wait = np.mean(dropna_waits), np.std(dropna_waits)
+        logger.info(
+            f"Jobs in the {partition} partition waited for a mean of {mean_wait / np.timedelta64(1, 'h')} hours \u00b1{std_wait / np.timedelta64(1, 'h')}. "
+        )
+
+    logger.info("Wait time analysis complete. ")
 
     run_duplicate_analysis(data)
 
@@ -145,11 +166,9 @@ def main(args):
         if usage[node_info["partition"]]["uptime"] > 0.01
     }
 
-    print(len(used_nodes))
-    print(len(all_nodes))
     capability_analysis(data=date_filtered, nodes=used_nodes)
     capability_analysis(data=date_filtered, nodes=all_nodes)
-    sys.exit()
+
     valid_nodes_mask = tier_1_and_2["NodeList"].isin(all_nodes.keys())
     valid_tier_1_and_2 = tier_1_and_2[valid_nodes_mask]
 
