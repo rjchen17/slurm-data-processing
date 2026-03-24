@@ -43,8 +43,14 @@ def get_wait_correlations(
 
     wait_statistics = {}
 
-    cols_to_analyze = ["ReqNodes", "ReqCPUS", "Timelimit"]
+    base_cols = ["ReqNodes", "ReqCPUS", "Timelimit"]
     for partition in partitions:
+
+        if partition in gpu_partitions:
+            cols_to_analyze = base_cols + ["gpus"]
+        else:
+            cols_to_analyze = base_cols
+
         partition_statistics = {}
         wait_time = data[data["Partition"] == partition]["Reserved"]
 
