@@ -62,6 +62,7 @@ def get_wait_correlations(
             column: spearmanr(wait_time, data[data["Partition"] == partition][column])
             for column in cols_to_analyze
         }
+        wait_statistics[partition] = partition_statistics
 
     return wait_statistics
 
