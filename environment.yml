@@ -7,4 +7,5 @@ dependencies:
   - numpy
   - pyarrow
   - matplotlib
+  - scipy
 
