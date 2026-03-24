@@ -12,7 +12,8 @@ def get_wait_correlations(
     data: pd.DataFrame, partitions=["standard", "gpu", "interactive", "preempt"]
 ) -> dict:
     """
-    Obtain correlations between certain sacct columns and wait times.
+    Obtain correlations between certain sacct columns and wait times. The function also checks for partitions that had
+    GPU requests and calculates additional correlations for those partitions.
 
     Args:
         data: A sacct data table.
