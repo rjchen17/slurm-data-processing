@@ -1,4 +1,5 @@
-"""Get information from a sacct data table in parquet format."""
+"""Get information from a sacct data table in parquet format. Most of the parts of the script are in their own
+functions, many of which return None but add information to the logger."""
 
 import os
 import sys
@@ -95,9 +96,7 @@ def run_wait_analysis(data: pd.DataFrame) -> None:
     )
     public_partitions = ["standard", "gpu", "interactive", "preempt"]
     for partition in public_partitions:
-        dropna_waits = data[data["Partition"] == partition][
-            "Reserved"
-        ].dropna()
+        dropna_waits = data[data["Partition"] == partition]["Reserved"].dropna()
         mean_wait, std_wait = np.mean(dropna_waits), np.std(dropna_waits)
         logger.info(
             f"Jobs in the {partition} partition waited for a mean of {mean_wait / np.timedelta64(1, 'h')} hours \u00b1{std_wait / np.timedelta64(1, 'h')}. "
