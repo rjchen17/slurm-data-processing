@@ -1,7 +1,8 @@
 """Get various distributions of cluster statistics."""
 
-import pandas as pd
 import logging
+
+import pandas as pd
 from scipy.stats import pearsonr, spearmanr
 
 logger = logging.getLogger(__name__)
@@ -12,7 +13,7 @@ def get_wait_correlations(
     data: pd.DataFrame, partitions=["standard", "gpu", "interactive", "preempt"]
 ) -> dict:
     """
-    Obtain correlations between certain sacct columns and wait times. The function also checks for partitions that had
+    Get correlations between certain sacct columns and wait times. The function also checks for partitions that had
     GPU requests and calculates additional correlations for those partitions.
 
     Args:
@@ -65,6 +66,18 @@ def get_wait_correlations(
         wait_statistics[partition] = partition_statistics
 
     return wait_statistics
+
+
+def get_submission_frequency(
+    data: pd.DataFrame, frequency: pd.Timedelta, min_date=None, max_date=None
+):
+
+    if min_date is None:
+        min_date = data["Submit"].min()
+    if max_date is None:
+        max_date = data["Submit"].max()
+    date_range = max_date - min_date
+    return len(data) / (date_range / frequency)
 
 
 def wait_calendar_heatmap():

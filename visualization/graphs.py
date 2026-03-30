@@ -1,5 +1,6 @@
 """Generate matplotlib graphs and figures."""
 
+import datetime
 import logging
 
 import matplotlib.pyplot as plt
@@ -90,6 +91,28 @@ def cpu_proportion_histogram(
     node_cpu_limits = data["NodeList"].map(lambda x: nodes[x]["cpus"])
     node_usage = requested_cores / node_cpu_limits
     ax.hist(node_usage, log=True, bins=bins)
+
+    return fig, ax
+
+
+def submit_frequency_histogram(
+    data: pd.DataFrame, offset: pd.Timedelta | pd.DateOffset | str = "1h", fig_ax=None
+):
+    """Get frequency of job submissions according to the provided offset."""
+
+    submissions = data["Submit"]
+    if fig_ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig, ax = fig_ax
+
+    # min_date = submissions.min()
+    # max_date = submissions.max()
+
+    min_date = datetime.datetime(year=2025, month=1, day=1)
+    max_date = datetime.datetime(year=2025, month=12, day=31)
+    time_intervals = pd.date_range(start=min_date, end=max_date, freq=offset)
+    ax.hist(submissions, bins=time_intervals, density=False, histtype="step", log=True)
 
     return fig, ax
 

@@ -14,6 +14,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from analysis.distributions import get_submission_frequency
 from classes import Node
 from utils import get_missing_nodes
 from validation.jobs import get_time_duplicates, get_duplicates
@@ -57,6 +58,52 @@ def run_duplicate_analysis(data: pd.DataFrame) -> None:
 
     duplicates = get_duplicates(data)
     print(f"{len(duplicates) / len(data)} proportion of data are duplicates. ")
+
+
+def run_frequency_analysis(data: pd.DataFrame, min_date, max_date) -> None:
+
+    logger.info("Running submission frequency analysis. ")
+    frequencies = [
+        pd.Timedelta(1, "h"),
+        pd.Timedelta(1, "D"),
+        pd.Timedelta(7, "D"),
+        pd.Timedelta(14, "D"),
+        pd.Timedelta(30, "D"),
+    ]
+    labels = ["1 Hour", "1 Day", "7 Days", "14 Days", "30 Days"]
+
+    for label, frequency in zip(labels, frequencies):
+        count = get_submission_frequency(
+            data, frequency, min_date=min_date, max_date=max_date
+        )
+        logger.info(f"{count} jobs were submitted every {label}. ")
+
+    logger.info("Submission frequency analysis complete. ")
+
+
+def run_wait_analysis(data: pd.DataFrame) -> None:
+
+    logger.info("Running wait time analysis. ")
+    outlier_threshold = pd.Timedelta(30, "days")
+    dropna_waits = data["Reserved"].dropna()
+    mean_wait, std_wait = np.mean(dropna_waits), np.std(dropna_waits)
+    logger.info(
+        f"Jobs on the cluster waited for a mean of {mean_wait / np.timedelta64(1, 'h')} hours \u00b1{std_wait / np.timedelta64(1, 'h')}. "
+    )
+    logger.info(
+        f"{dropna_waits[dropna_waits > pd.Timedelta(30, "days")].sum()} jobs on the cluster had a wait time of greater than {outlier_threshold}. "
+    )
+    public_partitions = ["standard", "gpu", "interactive", "preempt"]
+    for partition in public_partitions:
+        dropna_waits = data[data["Partition"] == partition][
+            "Reserved"
+        ].dropna()
+        mean_wait, std_wait = np.mean(dropna_waits), np.std(dropna_waits)
+        logger.info(
+            f"Jobs in the {partition} partition waited for a mean of {mean_wait / np.timedelta64(1, 'h')} hours \u00b1{std_wait / np.timedelta64(1, 'h')}. "
+        )
+
+    logger.info("Wait time analysis complete. ")
 
 
 def run_usage_analysis(data: pd.DataFrame, nodes: dict) -> dict:
@@ -110,28 +157,8 @@ def main(args):
     print(f"Original table length: {len(data)}")
     print(f"Table with date filters length: {date_filtered_jobs}")
 
-    logger.info("Running wait time analysis. ")
-    outlier_threshold = pd.Timedelta(30, "days")
-    dropna_waits = date_filtered["Reserved"].dropna()
-    mean_wait, std_wait = np.mean(dropna_waits), np.std(dropna_waits)
-    logger.info(
-        f"Jobs on the cluster waited for a mean of {mean_wait / np.timedelta64(1, 'h')} hours \u00b1{std_wait / np.timedelta64(1, 'h')}. "
-    )
-    logger.info(
-        f"{dropna_waits[dropna_waits > pd.Timedelta(30, "days")].sum()} jobs on the cluster had a wait time of greater than {outlier_threshold}. "
-    )
-    public_partitions = ["standard", "gpu", "interactive", "preempt"]
-    for partition in public_partitions:
-        dropna_waits = date_filtered[date_filtered["Partition"] == partition][
-            "Reserved"
-        ].dropna()
-        mean_wait, std_wait = np.mean(dropna_waits), np.std(dropna_waits)
-        logger.info(
-            f"Jobs in the {partition} partition waited for a mean of {mean_wait / np.timedelta64(1, 'h')} hours \u00b1{std_wait / np.timedelta64(1, 'h')}. "
-        )
-
-    logger.info("Wait time analysis complete. ")
-
+    run_frequency_analysis(date_filtered, min_date=min_date, max_date=max_date)
+    run_wait_analysis(date_filtered)
     run_duplicate_analysis(data)
 
     # Mask that checks for multiple nodes
