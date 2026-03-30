@@ -89,7 +89,7 @@ def get_submission_frequency(
         The rate of submissions, as a float.
     """
     if partition is not None:
-        data = data = [data["Partition"] == partition]
+        data = data[data["Partition"] == partition]
     if min_date is None:
         min_date = data["Submit"].min()
     if max_date is None:
