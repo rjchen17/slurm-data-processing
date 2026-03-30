@@ -69,9 +69,27 @@ def get_wait_correlations(
 
 
 def get_submission_frequency(
-    data: pd.DataFrame, frequency: pd.Timedelta, min_date=None, max_date=None
-):
+    data: pd.DataFrame,
+    frequency: pd.Timedelta,
+    min_date=None,
+    max_date=None,
+    partition=None,
+) -> float:
+    """
+    Get the frequency of submissions at a given interval over a time period.
 
+    Args:
+        data: A table of sacct data.
+        frequency: The interval of submissions to analyze (e.g. 1 hour, 1 day, 7 days).
+        min_date: If provided, limit the analysis to all data after min_date.
+        max_date: If provided, limit the analysis to all data before max_date.
+        partition: If provided, limit the analysis to the provided partition.
+
+    Returns:
+        The rate of submissions, as a float.
+    """
+    if partition is not None:
+        data = data = [data["Partition"] == partition]
     if min_date is None:
         min_date = data["Submit"].min()
     if max_date is None:
