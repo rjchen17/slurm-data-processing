@@ -17,6 +17,7 @@ import pyarrow.parquet as pq
 
 from analysis.distributions import get_submission_frequency
 from classes import Node
+import constants
 from utils import get_missing_nodes
 from validation.jobs import get_time_duplicates, get_duplicates
 from validation.cluster import capability_analysis
@@ -73,11 +74,41 @@ def run_frequency_analysis(data: pd.DataFrame, min_date, max_date) -> None:
     ]
     labels = ["1 Hour", "1 Day", "7 Days", "14 Days", "30 Days"]
 
+    cluster_wide_data = {}
+    logger.info("Cluster wide frequencies: ")
     for label, frequency in zip(labels, frequencies):
         count = get_submission_frequency(
             data, frequency, min_date=min_date, max_date=max_date
         )
-        logger.info(f"{count} jobs were submitted every {label}. ")
+        logger.info(f"{int(count)} jobs were submitted every {label}. ")
+        cluster_wide_data[label] = count
+
+    logger.info("Public partition frequencies: ")
+    public_partition_data = {label: 0 for label in labels}
+    for partition in constants.public_partitions:
+        for label, frequency in zip(labels, frequencies):
+            count = get_submission_frequency(
+                data,
+                frequency,
+                min_date=min_date,
+                max_date=max_date,
+                partition=partition,
+            )
+            logger.info(
+                f"{int(count)} jobs were submitted every {label} on the {partition} partition. "
+            )
+            public_partition_data[label] += count
+
+    logger.info("Private partition frequencies: ")
+    # Subtract public partition counts from cluster-wide counts to get private partition totals
+    private_partition_data = {
+        label: cluster_wide_data[label] - public_partition_data[label]
+        for label in labels
+    }
+    for label, count in private_partition_data.items():
+        logger.info(
+            f"{int(count)} jobs were submitted every {label} on all private partitions. "
+        )
 
     logger.info("Submission frequency analysis complete. ")
 
