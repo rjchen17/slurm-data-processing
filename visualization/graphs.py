@@ -78,14 +78,14 @@ def cpu_proportion_histogram(
 ) -> tuple[Figure, Axes]:
     """For single node jobs, generate a histogram of the proportion of the total CPUs of the node requested."""
 
-    fig, ax = plt.subplots()
-    ax.set_xlabel("Proportion of total cores requested")
-    ax.set_ylabel("Frequency")
-
     if (data["AllocNodes"] > 1).any():
         logger.warning(
             "Multinode jobs passed. Some logging information may be incorrect. "
         )
+
+    fig, ax = plt.subplots()
+    ax.set_xlabel("Proportion of total cores requested")
+    ax.set_ylabel("Frequency")
 
     requested_cores = data["ReqCPUS"]
     node_cpu_limits = data["NodeList"].map(lambda x: nodes[x]["cpus"])
@@ -95,8 +95,35 @@ def cpu_proportion_histogram(
     return fig, ax
 
 
+def cpu_hours_by_core(
+    data: pd.DataFrame, min_cores: int = None, max_cores: int = None, **kwargs
+):
+    if (data["AllocNodes"] > 1).any():
+        logger.warning(
+            "Multinode jobs passed. Some logging information may be incorrect."
+        )
+
+    min_cores = min_cores if min_cores is not None else data["ReqCPUS"].min()
+    max_cores = max_cores if max_cores is not None else data["ReqCPUS"].max()
+    cpu_hours_float = data["CPUTimeRAW"].dt.total_seconds() / 3600
+    mask = (data["ReqCPUS"] >= min_cores) & (data["ReqCPUS"] <= max_cores)
+
+    stats = cpu_hours_float[mask].groupby(data.loc[mask, "ReqCPUS"]).sum()
+    fig, ax = plt.subplots()
+    ax.bar(stats.index, stats.values, **kwargs)
+
+    ax.set_xlabel("Number of cores")
+    ax.set_ylabel("Total CPU hours")
+    ax.set_title(f"CPU Usage: {min_cores} to {max_cores} Cores")
+
+    return fig, ax
+
+
 def submit_frequency_histogram(
-    data: pd.DataFrame, offset: pd.Timedelta | pd.DateOffset | str = "1h", fig_ax=None
+    data: pd.DataFrame,
+    offset: pd.Timedelta | pd.DateOffset | str = "1h",
+    fig_ax=None,
+    **kwargs,
 ):
     """Get frequency of job submissions according to the provided offset."""
 
@@ -106,13 +133,37 @@ def submit_frequency_histogram(
     else:
         fig, ax = fig_ax
 
-    # min_date = submissions.min()
-    # max_date = submissions.max()
+    min_date = datetime.datetime(year=2025, month=1, day=1)
+    max_date = datetime.datetime(year=2025, month=12, day=31)
+    time_intervals = pd.date_range(start=min_date, end=max_date, freq=offset)
+    ax.hist(submissions, bins=time_intervals, density=False, histtype="step", log=False)
+
+    return fig, ax
+
+
+def submit_frequency_metrics(
+    data: pd.DataFrame,
+    offset: pd.Timedelta | pd.DateOffset | str = "1h",
+    fig_ax=None,
+    resample_time: pd.Timedelta = None,
+    **kwargs,
+):
+    """Get frequency of job submissions according to the provided offset."""
+
+    submissions = data.set_index("Submit").sort_index()
+    if resample_time is not None:
+        submissions = submissions.resample(resample_time).sum()
+        print(submissions)
+
+    if fig_ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig, ax = fig_ax
 
     min_date = datetime.datetime(year=2025, month=1, day=1)
     max_date = datetime.datetime(year=2025, month=12, day=31)
     time_intervals = pd.date_range(start=min_date, end=max_date, freq=offset)
-    ax.hist(submissions, bins=time_intervals, density=False, histtype="step", log=True)
+    ax.plot(submissions, time_intervals)
 
     return fig, ax
 
