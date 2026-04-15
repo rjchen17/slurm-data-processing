@@ -109,6 +109,9 @@ def cpu_hours_by_core(
     mask = (data["ReqCPUS"] >= min_cores) & (data["ReqCPUS"] <= max_cores)
 
     stats = cpu_hours_float[mask].groupby(data.loc[mask, "ReqCPUS"]).sum()
+    other_cores = cpu_hours_float[~mask].sum()
+    stats[len(stats) + 1] = other_cores
+
     fig, ax = plt.subplots()
     ax.bar(stats.index, stats.values, **kwargs)
 
